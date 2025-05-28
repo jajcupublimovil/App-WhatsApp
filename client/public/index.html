@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#25D366" />
+    <meta
+      name="description"
+      content="Distribuidor de contactos WhatsApp - Conectando con asesores disponibles"
+    />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    
+    <!-- Meta tags para WhatsApp y redes sociales -->
+    <meta property="og:title" content="Contactar Asesor - WhatsApp" />
+    <meta property="og:description" content="Te conectamos con un asesor disponible" />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary" />
+    
+    <title>Distribuidor de Contactos WhatsApp</title>
+    
+    <style>
+      /* Loader inicial mientras carga React */
+      #initial-loader {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        background-color: #f0f2f5;
+        font-family: Arial, sans-serif;
+      }
+      
+      .initial-spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #25D366;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+      }
+      
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    </style>
+  </head>
+  <body>
+    <noscript>
+      <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
+        <h2>JavaScript requerido</h2>
+        <p>Esta aplicación requiere JavaScript para funcionar correctamente.</p>
+        <p>Por favor, habilita JavaScript en tu navegador.</p>
+      </div>
+    </noscript>
+    
+    <div id="root">
+      <!-- Loader inicial -->
+      <div id="initial-loader">
+        <div>
+          <div class="initial-spinner"></div>
+          <p style="margin-top: 20px; color: #666;">Cargando...</p>
+        </div>
+      </div>
+    </div>
+    
+    <script>
+      // Remover loader inicial cuando React esté listo
+      window.addEventListener('load', function() {
+        setTimeout(function() {
+          const loader = document.getElementById('initial-loader');
+          if (loader) {
+            loader.style.display = 'none';
+          }
+        }, 100);
+      });
+    </script>
+  </body>
+</html>
