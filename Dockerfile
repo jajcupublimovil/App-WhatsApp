@@ -52,6 +52,7 @@ RUN npm ci --only=production && npm cache clean --force
 # Copy built application
 COPY --from=builder --chown=whatsapp:nodejs /app/server.js ./
 COPY --from=builder --chown=whatsapp:nodejs /app/client/build ./client/build
+COPY --from=builder --chown=whatsapp:nodejs /app/healthcheck.js ./
 
 # Create directory for SQLite database with proper permissions
 RUN mkdir -p /app/data && chown whatsapp:nodejs /app/data
@@ -62,9 +63,9 @@ USER whatsapp
 # Expose port
 EXPOSE 5000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "const http = require('http'); const options = { host: 'localhost', port: 5000, path: '/api/stats', timeout: 2000 }; const req = http.request(options, (res) => { process.exit(res.statusCode === 200 ? 0 : 1) }); req.on('error', () => process.exit(1)); req.end();"
+# Simple healthcheck with node script
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+  CMD node healthcheck.js
 
 # Start the application
 CMD ["node", "server.js"]

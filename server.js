@@ -12,8 +12,8 @@ app.use(express.json());
 
 // URLs de WhatsApp
 const whatsappUrls = [
-    "https://api.whatsapp.com/send?phone=50255137178&text=Hola,%20me%20interesa%20tener%20informaci%C3%B3n%20sobre%20publicidad%20en%20pantallas%20digitales.%20",
-    "https://api.whatsapp.com/send?phone=50239902678&text=Hola,%20me%20interesa%20tener%20informaci%C3%B3n%20sobre%20publicidad%20en%20pantallas%20digitales.%20"
+    "https://api.whatsapp.com/send?phone=50254638411&text=Hola%2C%20necesito%20información",
+    "https://api.whatsapp.com/send?phone=50360609789&text=Hola%2C%20necesito%20información"
 ];
 
 // Inicializar base de datos SQLite
@@ -21,33 +21,50 @@ const dbPath = process.env.NODE_ENV === 'production' ? '/app/data/distributor.db
 const db = new sqlite3.Database(dbPath, (err) => {
     if (err) {
         console.error('Error al conectar con la base de datos:', err.message);
+        process.exit(1);
     } else {
         console.log('Conectado a la base de datos SQLite.');
         console.log('Ruta de la base de datos:', dbPath);
+        
+        // Crear tabla de forma síncrona
+        createTables();
     }
 });
 
-// Crear tabla si no existe
-db.run(`CREATE TABLE IF NOT EXISTS distributor_counter (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    counter INTEGER NOT NULL DEFAULT 0,
-    last_updated DATETIME DEFAULT CURRENT_TIMESTAMP
-)`);
-
-// Inicializar contador si no existe
-db.get("SELECT * FROM distributor_counter WHERE id = 1", (err, row) => {
-    if (err) {
-        console.error('Error al consultar contador:', err.message);
-    } else if (!row) {
-        db.run("INSERT INTO distributor_counter (counter) VALUES (0)", (err) => {
+// Función para crear tablas
+function createTables() {
+    db.serialize(() => {
+        // Crear tabla si no existe
+        db.run(`CREATE TABLE IF NOT EXISTS distributor_counter (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            counter INTEGER NOT NULL DEFAULT 0,
+            last_updated DATETIME DEFAULT CURRENT_TIMESTAMP
+        )`, (err) => {
             if (err) {
-                console.error('Error al inicializar contador:', err.message);
+                console.error('Error al crear tabla:', err.message);
             } else {
-                console.log('Contador inicializado en 0');
+                console.log('Tabla distributor_counter lista.');
+                
+                // Inicializar contador si no existe
+                db.get("SELECT * FROM distributor_counter WHERE id = 1", (err, row) => {
+                    if (err) {
+                        console.error('Error al consultar contador:', err.message);
+                    } else if (!row) {
+                        db.run("INSERT INTO distributor_counter (counter) VALUES (0)", (err) => {
+                            if (err) {
+                                console.error('Error al inicializar contador:', err.message);
+                            } else {
+                                console.log('Contador inicializado en 0');
+                            }
+                        });
+                    } else {
+                        console.log('Contador actual:', row.counter);
+                    }
+                });
             }
         });
-    }
-});
+    });
+}
 
 // API para obtener la próxima URL de WhatsApp
 app.get('/api/whatsapp-url', (req, res) => {
@@ -190,7 +207,9 @@ process.on('SIGINT', () => {
     });
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`Servidor ejecutándose en puerto ${PORT}`);
     console.log(`Total de contactos configurados: ${whatsappUrls.length}`);
+    console.log(`Environment: ${process.env.NODE_ENV}`);
+    console.log(`Database path: ${dbPath}`);
 });
