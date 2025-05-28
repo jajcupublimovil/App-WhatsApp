@@ -4,7 +4,7 @@ const cors = require('cors');
 const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5000; // ← PUERTO 5000 POR DEFECTO
 
 // Middleware
 app.use(cors());
@@ -207,6 +207,7 @@ process.on('SIGINT', () => {
     });
 });
 
+// ✅ PUERTO 5000 Y BIND A 0.0.0.0
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Servidor ejecutándose en puerto ${PORT}`);
     console.log(`Total de contactos configurados: ${whatsappUrls.length}`);
