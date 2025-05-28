@@ -41,6 +41,9 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=5000
 
+# Install curl for healthcheck
+RUN apk add --no-cache curl
+
 # Create non-root user
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 whatsapp
@@ -52,7 +55,6 @@ RUN npm ci --only=production && npm cache clean --force
 # Copy built application
 COPY --from=builder --chown=whatsapp:nodejs /app/server.js ./
 COPY --from=builder --chown=whatsapp:nodejs /app/client/build ./client/build
-COPY --from=builder --chown=whatsapp:nodejs /app/healthcheck.js ./
 
 # Create directory for SQLite database with proper permissions
 RUN mkdir -p /app/data && chown whatsapp:nodejs /app/data
@@ -63,9 +65,9 @@ USER whatsapp
 # Expose port
 EXPOSE 5000
 
-# Simple healthcheck with node script
+# Simple healthcheck with curl
 HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
-  CMD node healthcheck.js
+  CMD curl -f http://localhost:5000/api/stats || exit 1
 
 # Start the application
 CMD ["node", "server.js"]
