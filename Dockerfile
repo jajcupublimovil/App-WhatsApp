@@ -1,35 +1,15 @@
-version: '3.8'
+# syntax=docker.io/docker/dockerfile:1
+FROM node:18-alpine AS base
 
-services:
-  app:
-    build: .
-    ports:
-      - "3000:3000"
-    environment:
-      - NODE_ENV=production
-      - PORT=3000
-      - DATABASE_PATH=/app/data/distributor.db
-      # ✅ Variables de entorno para Coolify
-      - SERVICE_FQDN_APP_3000
-    volumes:
-      # ✅ Volumen nombrado en lugar de bind mount
-      - app_data:/app/data
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 15s
-    # ✅ Configuración de red para Coolify
-    networks:
-      - default
+# Install dependencies only when needed
+FROM base AS deps
+RUN apk add --no-cache libc6-compat python3 make g++
+WORKDIR /app
 
-volumes:
-  app_data:
-    driver: local
+# Copy package files for both server and client
+COPY package.json package-lock.json* ./
+COPY client/package.json client/package-lock.json* ./client/
 
-<<<<<<< HEAD
 # Install server dependencies
 RUN npm ci --only=production
 
@@ -91,10 +71,3 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
 
 # Start the application
 CMD ["node", "server.js"]
-=======
-# ✅ Red externa que Coolify maneja automáticamente
-networks:
-  default:
-    external: true
-    name: ${COOLIFY_NETWORK:-coolify}
->>>>>>> d753066b61355492452cca016383cac43724652c
