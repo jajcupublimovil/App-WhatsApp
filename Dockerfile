@@ -39,7 +39,7 @@ WORKDIR /app
 
 # Set production environment
 ENV NODE_ENV=production
-ENV PORT=5000
+ENV PORT=3000
 
 # Install curl for healthcheck
 RUN apk add --no-cache curl
@@ -62,12 +62,12 @@ RUN mkdir -p /app/data && chown whatsapp:nodejs /app/data
 # Switch to non-root user
 USER whatsapp
 
-# Expose port
-EXPOSE 5000
+# Expose port (Coolify usa 3000 por defecto)
+EXPOSE 3000
 
-# Simple healthcheck with curl
+# Simple healthcheck
 HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
-  CMD curl -f http://localhost:5000/api/stats || exit 1
+  CMD curl -f http://localhost:3000/api/stats || exit 1
 
 # Start the application
 CMD ["node", "server.js"]

@@ -4,7 +4,8 @@ const cors = require('cors');
 const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT || 5000; // ← PUERTO 5000 POR DEFECTO
+// ✅ Puerto optimizado para Coolify (3000 por defecto)
+const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
@@ -16,58 +17,90 @@ const whatsappUrls = [
     "https://api.whatsapp.com/send?phone=50360609789&text=Hola%2C%20necesito%20información"
 ];
 
-// Inicializar base de datos SQLite
-const dbPath = process.env.NODE_ENV === 'production' ? '/app/data/distributor.db' : './distributor.db';
-const db = new sqlite3.Database(dbPath, (err) => {
-    if (err) {
-        console.error('Error al conectar con la base de datos:', err.message);
-        process.exit(1);
-    } else {
-        console.log('Conectado a la base de datos SQLite.');
-        console.log('Ruta de la base de datos:', dbPath);
-        
-        // Crear tabla de forma síncrona
-        createTables();
-    }
-});
+// ✅ Base de datos SQLite optimizada para Coolify
+const dbPath = process.env.DATABASE_PATH || '/app/data/distributor.db';
+let db;
 
-// Función para crear tablas
-function createTables() {
-    db.serialize(() => {
-        // Crear tabla si no existe
-        db.run(`CREATE TABLE IF NOT EXISTS distributor_counter (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            counter INTEGER NOT NULL DEFAULT 0,
-            last_updated DATETIME DEFAULT CURRENT_TIMESTAMP
-        )`, (err) => {
+function initializeDatabase() {
+    return new Promise((resolve, reject) => {
+        // Crear directorio si no existe
+        const dbDir = path.dirname(dbPath);
+        require('fs').mkdirSync(dbDir, { recursive: true });
+        
+        db = new sqlite3.Database(dbPath, (err) => {
             if (err) {
-                console.error('Error al crear tabla:', err.message);
+                console.error('Error al conectar con la base de datos:', err.message);
+                reject(err);
             } else {
-                console.log('Tabla distributor_counter lista.');
+                console.log('Conectado a la base de datos SQLite.');
+                console.log('Ruta de la base de datos:', dbPath);
                 
-                // Inicializar contador si no existe
-                db.get("SELECT * FROM distributor_counter WHERE id = 1", (err, row) => {
-                    if (err) {
-                        console.error('Error al consultar contador:', err.message);
-                    } else if (!row) {
-                        db.run("INSERT INTO distributor_counter (counter) VALUES (0)", (err) => {
-                            if (err) {
-                                console.error('Error al inicializar contador:', err.message);
-                            } else {
-                                console.log('Contador inicializado en 0');
-                            }
-                        });
-                    } else {
-                        console.log('Contador actual:', row.counter);
-                    }
-                });
+                // Crear tabla de forma síncrona
+                createTables()
+                    .then(() => resolve())
+                    .catch(reject);
             }
         });
     });
 }
 
+// Función mejorada para crear tablas
+function createTables() {
+    return new Promise((resolve, reject) => {
+        db.serialize(() => {
+            // Crear tabla si no existe
+            db.run(`CREATE TABLE IF NOT EXISTS distributor_counter (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                counter INTEGER NOT NULL DEFAULT 0,
+                last_updated DATETIME DEFAULT CURRENT_TIMESTAMP
+            )`, (err) => {
+                if (err) {
+                    console.error('Error al crear tabla:', err.message);
+                    reject(err);
+                } else {
+                    console.log('Tabla distributor_counter lista.');
+                    
+                    // Inicializar contador si no existe
+                    db.get("SELECT * FROM distributor_counter WHERE id = 1", (err, row) => {
+                        if (err) {
+                            console.error('Error al consultar contador:', err.message);
+                            reject(err);
+                        } else if (!row) {
+                            db.run("INSERT INTO distributor_counter (counter) VALUES (0)", (err) => {
+                                if (err) {
+                                    console.error('Error al inicializar contador:', err.message);
+                                    reject(err);
+                                } else {
+                                    console.log('Contador inicializado en 0');
+                                    resolve();
+                                }
+                            });
+                        } else {
+                            console.log('Contador actual:', row.counter);
+                            resolve();
+                        }
+                    });
+                }
+            });
+        });
+    });
+}
+
+// ✅ Health check para Coolify
+app.get('/health', (req, res) => {
+    res.status(200).json({ 
+        status: 'healthy', 
+        timestamp: new Date().toISOString(),
+        database: db ? 'connected' : 'disconnected'
+    });
+});
+
 // API para obtener la próxima URL de WhatsApp
 app.get('/api/whatsapp-url', (req, res) => {
+    if (!db) {
+        return res.status(500).json({ error: 'Base de datos no inicializada' });
+    }
+    
     // Obtener contador actual
     db.get("SELECT counter FROM distributor_counter WHERE id = 1", (err, row) => {
         if (err) {
@@ -116,6 +149,10 @@ app.get('/api/whatsapp-url', (req, res) => {
 
 // API para obtener estadísticas
 app.get('/api/stats', (req, res) => {
+    if (!db) {
+        return res.status(500).json({ error: 'Base de datos no inicializada' });
+    }
+    
     db.get("SELECT counter FROM distributor_counter WHERE id = 1", (err, row) => {
         if (err) {
             console.error('Error al obtener estadísticas:', err.message);
@@ -143,6 +180,10 @@ app.get('/api/stats', (req, res) => {
 
 // API para verificar estado actual (para debugging)
 app.get('/api/debug', (req, res) => {
+    if (!db) {
+        return res.status(500).json({ error: 'Base de datos no inicializada' });
+    }
+    
     db.get("SELECT * FROM distributor_counter WHERE id = 1", (err, row) => {
         if (err) {
             console.error('Error al obtener estado:', err.message);
@@ -170,6 +211,10 @@ app.get('/api/debug', (req, res) => {
 
 // API para resetear contador (útil para pruebas)
 app.post('/api/reset-counter', (req, res) => {
+    if (!db) {
+        return res.status(500).json({ error: 'Base de datos no inicializada' });
+    }
+    
     db.run("UPDATE distributor_counter SET counter = 0, last_updated = CURRENT_TIMESTAMP WHERE id = 1", (err) => {
         if (err) {
             console.error('Error al resetear contador:', err.message);
@@ -181,36 +226,56 @@ app.post('/api/reset-counter', (req, res) => {
     });
 });
 
-// Servir archivos estáticos del cliente React en producción
-if (process.env.NODE_ENV === 'production') {
-    app.use(express.static(path.join(__dirname, 'client/build')));
-    
-    app.get('*', (req, res) => {
-        // Evitar que las rutas de API sean capturadas por React
-        if (req.path.startsWith('/api/')) {
-            return res.status(404).json({ error: 'API endpoint not found' });
-        }
-        res.sendFile(path.join(__dirname, 'client/build', 'index.html'));
-    });
-}
+// Servir archivos estáticos del cliente React
+app.use(express.static(path.join(__dirname, 'client/build')));
+
+// Catch-all handler para React Router
+app.get('*', (req, res) => {
+    // Evitar que las rutas de API sean capturadas por React
+    if (req.path.startsWith('/api/') || req.path === '/health') {
+        return res.status(404).json({ error: 'API endpoint not found' });
+    }
+    res.sendFile(path.join(__dirname, 'client/build', 'index.html'));
+});
 
 // Manejo de cierre graceful
-process.on('SIGINT', () => {
-    console.log('\nCerrando servidor...');
-    db.close((err) => {
-        if (err) {
-            console.error('Error al cerrar la base de datos:', err.message);
-        } else {
-            console.log('Conexión a la base de datos cerrada.');
-        }
-        process.exit(0);
-    });
-});
+process.on('SIGINT', gracefulShutdown);
+process.on('SIGTERM', gracefulShutdown);
 
-// ✅ PUERTO 5000 Y BIND A 0.0.0.0
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Servidor ejecutándose en puerto ${PORT}`);
-    console.log(`Total de contactos configurados: ${whatsappUrls.length}`);
-    console.log(`Environment: ${process.env.NODE_ENV}`);
-    console.log(`Database path: ${dbPath}`);
-});
+function gracefulShutdown() {
+    console.log('\nCerrando servidor...');
+    if (db) {
+        db.close((err) => {
+            if (err) {
+                console.error('Error al cerrar la base de datos:', err.message);
+            } else {
+                console.log('Conexión a la base de datos cerrada.');
+            }
+            process.exit(0);
+        });
+    } else {
+        process.exit(0);
+    }
+}
+
+// ✅ Iniciar servidor solo después de inicializar la base de datos
+async function startServer() {
+    try {
+        await initializeDatabase();
+        
+        // Bind a 0.0.0.0 para que funcione en contenedores
+        app.listen(PORT, '0.0.0.0', () => {
+            console.log(`🚀 Servidor ejecutándose en puerto ${PORT}`);
+            console.log(`📱 Total de contactos configurados: ${whatsappUrls.length}`);
+            console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+            console.log(`💾 Database path: ${dbPath}`);
+            console.log(`🔗 Health check: http://localhost:${PORT}/health`);
+        });
+    } catch (error) {
+        console.error('Error al inicializar la aplicación:', error);
+        process.exit(1);
+    }
+}
+
+// Iniciar la aplicación
+startServer();
