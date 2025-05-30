@@ -13,8 +13,8 @@ app.use(express.json());
 
 // URLs de WhatsApp
 const whatsappUrls = [
-    "https://api.whatsapp.com/send?phone=50254638411&text=Hola%2C%20necesito%20información",
-    "https://api.whatsapp.com/send?phone=50360609789&text=Hola%2C%20necesito%20información"
+    "https://api.whatsapp.com/send?phone=50255137178&text=Me%20interesa%20saber%20m%C3%A1s%20informaci%C3%B3n%20sobre%20publicidad%20en%20pantallas%20digitales.%20",
+    "https://api.whatsapp.com/send?phone=50239902678&text=Me%20interesa%20saber%20m%C3%A1s%20informaci%C3%B3n%20sobre%20publicidad%20en%20pantallas%20digitales.%20"
 ];
 
 // ✅ Base de datos SQLite optimizada para Coolify
